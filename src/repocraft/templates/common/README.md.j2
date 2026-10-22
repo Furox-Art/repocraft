@@ -1,0 +1,53 @@
+# [[ name ]]
+
+[[ description ]]
+[% if repository %]
+
+Repository: <https://github.com/[[ repository.owner ]]/[[ repository.name ]]>.
+[% endif %]
+
+## Requirements
+
+- Python [[ min_python ]] or newer.
+
+## Installation
+
+```bash
+python -m pip install .
+```
+
+## Usage
+[% if type == "library" %]
+
+```python
+from [[ package ]] import add
+
+print(add(2, 3))
+```
+[% else %]
+
+```bash
+[[ command ]] [NAME]
+```
+
+The command prints a greeting and exits with status `0`.
+[% endif %]
+
+## Development
+
+```bash
+python -m venv .venv
+. .venv/bin/activate  # Windows: .venv\Scripts\activate
+python -m pip install -e ".[dev]"
+python -m pytest
+python -m ruff check .
+python -m mypy
+```
+
+The test suite enforces 100% branch coverage, and CI rejects skipped tests
+through the JUnit report gate. Pull requests run the same checks on every
+supported Python version.
+
+## License
+
+[[ license ]] — see `LICENSE`.

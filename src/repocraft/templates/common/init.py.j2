@@ -1,0 +1,8 @@
+"""Runtime package for [[ name ]]."""
+
+[% if type == "library" %]
+from [[ package ]].core import add
+
+__all__ = ["add"]
+[% endif %]
+__version__ = "[[ version ]]"

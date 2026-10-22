@@ -1,0 +1,26 @@
+"""Command-line interface for [[ name ]]."""
+
+from __future__ import annotations
+
+import argparse
+from collections.abc import Sequence
+
+from [[ package ]] import __version__
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Return the argument parser for [[ command ]]."""
+    parser = argparse.ArgumentParser(
+        prog="[[ command ]]",
+        description="A generated command-line application.",
+    )
+    parser.add_argument("name", nargs="?", default="world", help="who to greet")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run the command and return its exit status."""
+    args = build_parser().parse_args(argv)
+    print(f"Hello, {args.name}!")
+    return 0

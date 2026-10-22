@@ -1,0 +1,64 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "[[ name ]]"
+version = "[[ version ]]"
+description = [[ description | tojson ]]
+readme = "README.md"
+requires-python = "[[ python ]]"
+license = "[[ license ]]"
+license-files = ["LICENSE"]
+authors = [{ name = [[ author | tojson ]] }]
+classifiers = [
+[% for classifier in classifiers %]
+    "[[ classifier ]]",
+[% endfor %]
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.13",
+    "pytest>=8",
+    "pytest-cov>=5",
+    "ruff>=0.8",
+]
+[% if type == "cli" %]
+
+[project.scripts]
+[[ command ]] = "[[ package ]].cli:main"
+[% endif %]
+[% if repository %]
+
+[project.urls]
+Repository = "https://github.com/[[ repository.owner ]]/[[ repository.name ]]"
+[% endif %]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/[[ package ]]"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--cov=[[ package ]]",
+    "--cov-branch",
+    "--cov-report=term-missing",
+    "--cov-fail-under=100",
+    "--strict-markers",
+    "--strict-config",
+]
+
+[tool.ruff]
+target-version = "py[[ min_python | replace('.', '') ]]"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "[[ min_python ]]"
+strict = true
+mypy_path = "src"
+files = ["src", "tests"]

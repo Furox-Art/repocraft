@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:repocraft:schema:spec:1",
+  "title": "repocraft project spec",
+  "description": "The validated input from which repocraft renders a Python project.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project"],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "package", "description", "type", "license", "author"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{1,49}$",
+          "description": "Distribution name, for example example-cli."
+        },
+        "package": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{1,49}$",
+          "description": "Import package name, for example example_cli."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 200
+        },
+        "type": {
+          "enum": ["library", "cli"]
+        },
+        "license": {
+          "enum": ["MIT", "Apache-2.0"]
+        },
+        "author": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+          "default": "0.1.0"
+        },
+        "python": {
+          "enum": [">=3.10", ">=3.11", ">=3.12", ">=3.13", ">=3.14"],
+          "default": ">=3.10"
+        },
+        "cli": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["command"],
+          "properties": {
+            "command": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,29}$"
+            }
+          }
+        },
+        "repository": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["owner", "name"],
+          "properties": {
+            "owner": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9-]{0,38}$"
+            },
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]{1,100}$"
+            },
+            "private": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "const": "cli"
+              }
+            }
+          },
+          "then": {
+            "required": ["cli"]
+          }
+        },
+        {
+          "if": {
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "const": "library"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": ["cli"]
+            }
+          }
+        }
+      ]
+    }
+  }
+}
