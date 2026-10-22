@@ -1,0 +1,13 @@
+schema_version: 1
+id: fibonacci
+version: 1.0.0
+description: Print the first Fibonacci numbers.
+triggers:
+  - fibonacci
+  - fibonacci dizisi
+parameters:
+  count:
+    type: integer
+    default: 10
+    minimum: 1
+    maximum: 1000

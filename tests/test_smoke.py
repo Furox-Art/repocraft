@@ -9,10 +9,18 @@ from pathlib import Path
 
 import pytest
 
+from repocraft.recipe import (
+    Recipe,
+    load_recipes,
+    render_recipe,
+    resolve_parameters,
+    write_files,
+)
 from repocraft.render import render_project
 from repocraft.spec import load_spec
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
+RECIPES = load_recipes()
 
 
 def _run(command: list[str], cwd: Path, env: dict[str, str] | None = None) -> None:
@@ -64,3 +72,11 @@ def test_generated_project_passes_its_own_gates(
     _run([sys.executable, "-m", "mypy"], cwd=project, env=env)
     _run([sys.executable, "-m", "pytest", "--junitxml=junit.xml"], cwd=project, env=env)
     _run([sys.executable, "scripts/check_junit.py", "junit.xml"], cwd=project, env=env)
+
+
+@pytest.mark.parametrize("recipe", RECIPES, ids=[recipe.id for recipe in RECIPES])
+def test_generated_snippet_passes_its_own_tests(tmp_path: Path, recipe: Recipe) -> None:
+    write_files(render_recipe(recipe, resolve_parameters(recipe, {})), tmp_path)
+
+    _run([sys.executable, f"test_{recipe.id}.py"], cwd=tmp_path)
+    _run([sys.executable, f"{recipe.id}.py"], cwd=tmp_path)

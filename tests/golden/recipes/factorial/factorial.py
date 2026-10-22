@@ -1,0 +1,22 @@
+"""Factorials."""
+
+from __future__ import annotations
+
+
+def factorial(n: int) -> int:
+    """Return ``n!`` using an iterative product."""
+    if n < 0:
+        raise ValueError("n must not be negative")
+    result = 1
+    for value in range(2, n + 1):
+        result *= value
+    return result
+
+
+def main() -> None:
+    """Print the value configured when this file was generated."""
+    print(factorial(5))
+
+
+if __name__ == "__main__":
+    main()

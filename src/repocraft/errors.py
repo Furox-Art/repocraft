@@ -13,3 +13,7 @@ class SpecError(RepocraftError):
 
 class RenderError(RepocraftError):
     """The output directory cannot be used, or rendering failed."""
+
+
+class RecipeError(RepocraftError):
+    """A recipe is invalid, or a request cannot be matched unambiguously."""

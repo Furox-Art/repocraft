@@ -1,0 +1,15 @@
+schema_version: 1
+id: prime_sieve
+version: 1.0.0
+description: List the prime numbers up to a limit.
+triggers:
+  - asal sayı
+  - asallar
+  - prime numbers
+  - prime sieve
+parameters:
+  limit:
+    type: integer
+    default: 30
+    minimum: 0
+    maximum: 100000

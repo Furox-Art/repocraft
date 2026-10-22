@@ -1,0 +1,14 @@
+schema_version: 1
+id: triangle
+version: 1.0.0
+description: Draw a centered ASCII triangle.
+triggers:
+  - üçgen
+  - triangle
+  - piramit
+parameters:
+  height:
+    type: integer
+    default: 5
+    minimum: 1
+    maximum: 100

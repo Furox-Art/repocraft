@@ -1,0 +1,31 @@
+"""Prime number generation with the sieve of Eratosthenes."""
+
+from __future__ import annotations
+
+import math
+
+
+def primes_up_to(limit: int) -> list[int]:
+    """Return every prime number less than or equal to ``limit``."""
+    if limit < 0:
+        raise ValueError("limit must not be negative")
+    sieve = bytearray([1]) * (limit + 1)
+    sieve[0] = 0
+    if limit >= 1:
+        sieve[1] = 0
+    for candidate in range(2, math.isqrt(limit) + 1):
+        if sieve[candidate]:
+            start = candidate * candidate
+            sieve[start : limit + 1 : candidate] = bytes(
+                (limit - start) // candidate + 1
+            )
+    return [value for value in range(2, limit + 1) if sieve[value]]
+
+
+def main() -> None:
+    """Print the primes configured when this file was generated."""
+    print(primes_up_to([[ limit ]]))
+
+
+if __name__ == "__main__":
+    main()

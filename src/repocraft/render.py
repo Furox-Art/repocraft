@@ -65,7 +65,7 @@ def render_project(
             continue
         destination.parent.mkdir(parents=True, exist_ok=True)
         if is_template:
-            text = _environment().get_template(source).render(**context)
+            text = template_environment().get_template(source).render(**context)
             destination.write_text(text, encoding="utf-8", newline="\n")
         else:
             text = (TEMPLATES / source).read_text(encoding="utf-8")
@@ -107,7 +107,8 @@ def _at_least(version: str, minimum: str) -> bool:
     )
 
 
-def _environment() -> Environment:
+def template_environment() -> Environment:
+    """Return the shared deterministic Jinja environment."""
     # GitHub Actions uses ${{ ... }}; custom delimiters keep Jinja out of its way.
     return Environment(
         loader=FileSystemLoader(str(TEMPLATES)),

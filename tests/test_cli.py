@@ -9,6 +9,7 @@ import pytest
 
 from repocraft import __version__
 from repocraft.cli import main
+from repocraft.recipe import load_recipes
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
@@ -82,3 +83,128 @@ def test_module_entry_point(
         runpy.run_module("repocraft", run_name="__main__")
     assert exit_info.value.code == 0
     assert capsys.readouterr().out == f"repocraft {__version__}\n"
+
+
+def test_recipes_lists_the_builtin_catalog(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["recipes"]) == 0
+    expected = "".join(
+        f"{recipe.id} {recipe.version}: {recipe.description}\n"
+        for recipe in load_recipes()
+    )
+    assert capsys.readouterr().out == expected
+
+
+def test_make_with_yes_writes_files(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    output = tmp_path / "snippet"
+    assert main(["make", "üçgen", "-o", str(output), "--yes"]) == 0
+
+    captured = capsys.readouterr()
+    assert f"wrote {output / 'triangle.py'}" in captured.out
+    assert f"wrote {output / 'test_triangle.py'}" in captured.out
+    assert (output / "triangle.py").is_file()
+    assert (output / "test_triangle.py").is_file()
+
+
+def test_make_dry_run_writes_nothing(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    output = tmp_path / "planned"
+    argv = ["make", "fibonacci", "--param", "count=3", "-o", str(output), "--dry-run"]
+    assert main(argv) == 0
+
+    printed = capsys.readouterr().out.splitlines()
+    assert printed == [
+        str(output / "fibonacci.py"),
+        str(output / "test_fibonacci.py"),
+    ]
+    assert not output.exists()
+
+
+def test_make_confirms_before_writing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def accept(_prompt: str = "") -> str:
+        return "yes"
+
+    monkeypatch.setattr("builtins.input", accept)
+    output = tmp_path / "confirmed"
+    assert main(["make", "faktoriyel", "-o", str(output)]) == 0
+
+    captured = capsys.readouterr().out
+    assert "recipe: factorial 1.0.0" in captured
+    assert "parameters: n=5" in captured
+    assert "write these files?" in captured
+    assert (output / "factorial.py").is_file()
+
+
+def test_make_aborts_when_declined(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def decline(_prompt: str = "") -> str:
+        return "n"
+
+    monkeypatch.setattr("builtins.input", decline)
+    output = tmp_path / "declined"
+    assert main(["make", "fibonacci", "-o", str(output)]) == 1
+    assert "aborted; no files were written" in capsys.readouterr().err
+    assert not output.exists()
+
+
+def test_make_requires_confirmation_without_a_terminal(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def fail(_prompt: str = "") -> str:
+        raise EOFError
+
+    monkeypatch.setattr("builtins.input", fail)
+    output = tmp_path / "no-terminal"
+    assert main(["make", "fibonacci", "-o", str(output)]) == 1
+    assert "confirmation required" in capsys.readouterr().err
+    assert not output.exists()
+
+
+@pytest.mark.parametrize(
+    ("params", "fragment"),
+    [
+        (["count"], "expected NAME=VALUE"),
+        (["=3"], "expected NAME=VALUE"),
+        (["count=1", "count=2"], "more than once"),
+        (["size=3"], "no parameter 'size'"),
+        (["count=0"], "between 1 and 1000"),
+    ],
+)
+def test_make_rejects_invalid_parameters(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    params: list[str],
+    fragment: str,
+) -> None:
+    output = tmp_path / "out"
+    argv = ["make", "fibonacci", "-o", str(output), "--yes"]
+    for param in params:
+        argv.extend(["--param", param])
+
+    assert main(argv) == 1
+    assert fragment in capsys.readouterr().err
+    assert not output.exists()
+
+
+def test_make_refuses_to_overwrite(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    output = tmp_path / "out"
+    output.mkdir()
+    keep = output / "fibonacci.py"
+    keep.write_text("keep", encoding="utf-8")
+
+    assert main(["make", "fibonacci", "-o", str(output), "--yes"]) == 1
+    assert "refusing to overwrite" in capsys.readouterr().err
+    assert keep.read_text(encoding="utf-8") == "keep"

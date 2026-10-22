@@ -1,0 +1,21 @@
+"""ASCII triangle drawing."""
+
+from __future__ import annotations
+
+
+def triangle(height: int) -> str:
+    """Return a centered pyramid of stars with ``height`` rows."""
+    if height < 1:
+        raise ValueError("height must be at least 1")
+    width = height * 2 - 1
+    rows = [("*" * (row * 2 + 1)).center(width).rstrip() for row in range(height)]
+    return "\n".join(rows)
+
+
+def main() -> None:
+    """Print the triangle configured when this file was generated."""
+    print(triangle([[ height ]]))
+
+
+if __name__ == "__main__":
+    main()
