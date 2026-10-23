@@ -4,7 +4,7 @@ Deterministic Python generation from validated input.
 
 `repocraft` has two closed paths that never call a model:
 
-- a short request such as `üçgen` selects a built-in recipe and writes one
+- a short request such as `triangle` selects a built-in recipe and writes one
   `.py` file plus one `unittest` file;
 - a small YAML spec becomes a complete Python project with packaging metadata,
   a `src/` layout, tests, lint and type-check configuration, CI, CodeQL,
@@ -21,8 +21,7 @@ Version 0.2.0 adds the deterministic snippet mode:
   rejection in YAML;
 - four built-in recipes: `fibonacci`, `factorial`, `prime_sieve`, and
   `triangle`;
-- deterministic Turkish and English matching, including ASCII fallbacks such as
-  `ucgen`;
+- deterministic English matching with case, accent, and suffix normalization;
 - confirmation before writing, `--dry-run`, `--param`, and refusal to overwrite;
 - golden snapshots and smoke tests for every generated snippet.
 
@@ -56,9 +55,9 @@ Ask for a snippet. The command shows the selected recipe, its parameters, and
 the target files, then asks for confirmation:
 
 ```bash
-repocraft make "üçgen"          # triangle.py and test_triangle.py
-repocraft make "faktoriyel"     # ASCII fallback for faktöriyel
-repocraft make "asal sayılar"
+repocraft make "triangle"       # triangle.py and test_triangle.py
+repocraft make "factorial"
+repocraft make "prime numbers"
 ```
 
 Preview without writing anything:
@@ -83,9 +82,9 @@ Rules:
 - `--yes` skips the confirmation prompt;
 - generated tests use the standard library: `python test_<recipe>.py`.
 
-The matcher normalizes case, Turkish diacritics, and common suffixes, so
-`ÜÇGENİN`, `üçgen`, and `ucgen` all select the triangle recipe. It never calls a
-model.
+The matcher normalizes case and accents and matches word prefixes, so
+`Triangles` and `draw a triangle` both select the triangle recipe. It never
+calls a model.
 
 ## Project mode
 

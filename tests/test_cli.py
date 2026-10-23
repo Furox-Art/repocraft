@@ -98,7 +98,7 @@ def test_make_with_yes_writes_files(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     output = tmp_path / "snippet"
-    assert main(["make", "üçgen", "-o", str(output), "--yes"]) == 0
+    assert main(["make", "triangle", "-o", str(output), "--yes"]) == 0
 
     captured = capsys.readouterr()
     assert f"wrote {output / 'triangle.py'}" in captured.out
@@ -132,7 +132,7 @@ def test_make_confirms_before_writing(
 
     monkeypatch.setattr("builtins.input", accept)
     output = tmp_path / "confirmed"
-    assert main(["make", "faktoriyel", "-o", str(output)]) == 0
+    assert main(["make", "factorial", "-o", str(output)]) == 0
 
     captured = capsys.readouterr().out
     assert "recipe: factorial 1.0.0" in captured

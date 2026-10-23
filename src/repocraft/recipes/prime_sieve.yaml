@@ -3,10 +3,9 @@ id: prime_sieve
 version: 1.0.0
 description: List the prime numbers up to a limit.
 triggers:
-  - asal sayı
-  - asallar
   - prime numbers
   - prime sieve
+  - primes
 parameters:
   limit:
     type: integer

@@ -39,7 +39,7 @@ def _build_parser() -> argparse.ArgumentParser:
     render.add_argument("--dry-run", action="store_true", help="list files without writing them")
 
     make = commands.add_parser("make", help="generate a snippet from a short request")
-    make.add_argument("request", help='short request, for example "üçgen"')
+    make.add_argument("request", help='short request, for example "triangle"')
     make.add_argument(
         "-o",
         "--output",

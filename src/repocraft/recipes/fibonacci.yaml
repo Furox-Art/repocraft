@@ -4,7 +4,6 @@ version: 1.0.0
 description: Print the first Fibonacci numbers.
 triggers:
   - fibonacci
-  - fibonacci dizisi
 parameters:
   count:
     type: integer

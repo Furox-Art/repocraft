@@ -21,22 +21,6 @@ if TYPE_CHECKING:
     from importlib.abc import Traversable
 
 _INTEGER = re.compile(r"-?[0-9]+")
-_TURKISH = str.maketrans(
-    {
-        "ı": "i",  # noqa: RUF001 - the Turkish dotless i is the point of this map.
-        "İ": "i",
-        "ş": "s",
-        "Ş": "s",
-        "ğ": "g",
-        "Ğ": "g",
-        "ç": "c",
-        "Ç": "c",
-        "ö": "o",
-        "Ö": "o",
-        "ü": "u",
-        "Ü": "u",
-    }
-)
 
 
 class _RecipeYamlLoader(yaml.SafeLoader):
@@ -264,8 +248,7 @@ def _format_errors(validator: Draft202012Validator, data: Any) -> str:
 
 
 def _normalize(text: str) -> str:
-    translated = text.translate(_TURKISH)
-    decomposed = unicodedata.normalize("NFKD", translated)
+    decomposed = unicodedata.normalize("NFKD", text)
     unaccented = "".join(char for char in decomposed if not unicodedata.combining(char))
     return " ".join(re.findall(r"[^\W_]+", unaccented.casefold()))
 

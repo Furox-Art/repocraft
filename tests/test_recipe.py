@@ -77,14 +77,15 @@ def test_builtin_recipe_ids_are_sorted() -> None:
 @pytest.mark.parametrize(
     ("request_text", "recipe_id"),
     [
-        ("üçgen", "triangle"),
-        ("ÜÇGENİN", "triangle"),
-        ("ucgen ciz", "triangle"),
-        ("lütfen bir fibonacci dizisi yaz", "fibonacci"),
-        ("fibonaccinin", "fibonacci"),
-        ("faktoriyel", "factorial"),
+        ("triangle", "triangle"),
+        ("Triangles", "triangle"),
+        ("draw a triangle", "triangle"),
+        ("pyramid", "triangle"),
+        ("please write a fibonacci sequence", "fibonacci"),
+        ("fibonaccis", "fibonacci"),
+        ("factorial", "factorial"),
         ("Factorial", "factorial"),
-        ("asal sayıları listele", "prime_sieve"),  # noqa: RUF001 - Turkish input is intentional.
+        ("list the prime numbers", "prime_sieve"),
         ("prime sieve", "prime_sieve"),
         ("prime_sieve", "prime_sieve"),
     ],
@@ -98,7 +99,7 @@ def test_empty_request_is_rejected() -> None:
         select_recipe(" !!! ", RECIPES)
 
 
-@pytest.mark.parametrize("request_text", ["kedi", "fib"])
+@pytest.mark.parametrize("request_text", ["cat", "fib"])
 def test_unknown_request_is_rejected(request_text: str) -> None:
     with pytest.raises(RecipeError, match="no recipe matches"):
         select_recipe(request_text, RECIPES)
@@ -106,7 +107,7 @@ def test_unknown_request_is_rejected(request_text: str) -> None:
 
 def test_ambiguous_request_lists_the_candidates() -> None:
     with pytest.raises(RecipeError) as error:
-        select_recipe("üçgen ve fibonacci", RECIPES)
+        select_recipe("triangle and fibonacci", RECIPES)
     message = str(error.value)
     assert "more than one recipe" in message
     assert "fibonacci" in message

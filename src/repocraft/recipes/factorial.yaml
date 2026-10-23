@@ -3,7 +3,6 @@ id: factorial
 version: 1.0.0
 description: Compute the factorial of a number.
 triggers:
-  - faktöriyel
   - factorial
 parameters:
   n:

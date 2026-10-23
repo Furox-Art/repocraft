@@ -3,9 +3,8 @@ id: triangle
 version: 1.0.0
 description: Draw a centered ASCII triangle.
 triggers:
-  - üçgen
   - triangle
-  - piramit
+  - pyramid
 parameters:
   height:
     type: integer
