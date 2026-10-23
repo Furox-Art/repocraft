@@ -195,4 +195,4 @@ CI runs the suite on Python 3.10 through 3.14 and rejects skipped tests through
 
 ## License
 
-Apache-2.0. See `LICENSE`.
+MIT. See `LICENSE`.
