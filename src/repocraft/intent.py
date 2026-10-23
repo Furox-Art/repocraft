@@ -102,13 +102,14 @@ def request_intent(
         {"role": "system", "content": system_prompt(recipes)},
         {"role": "user", "content": request},
     ]
-    payload = _post_chat(url=url, api_key=key, model=chosen_model, messages=messages)
-    return _validate_intent(parse_intent(_content(payload)), recipes)
+    payload = post_chat(url=url, api_key=key, model=chosen_model, messages=messages)
+    return _validate_intent(parse_intent(chat_content(payload)), recipes)
 
 
-def _post_chat(
+def post_chat(
     *, url: str, api_key: str, model: str, messages: list[dict[str, str]]
 ) -> Any:
+    """POST a chat completion request and return the decoded JSON payload."""
     body = json.dumps(
         {"model": model, "temperature": 0, "messages": messages}
     ).encode("utf-8")
@@ -133,7 +134,8 @@ def _post_chat(
         raise IntentError(f"the endpoint returned invalid JSON: {error}") from error
 
 
-def _content(payload: Any) -> str:
+def chat_content(payload: Any) -> str:
+    """Return the text content of a chat completion response payload."""
     try:
         content = payload["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as error:

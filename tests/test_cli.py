@@ -11,7 +11,8 @@ import pytest
 
 from repocraft import __version__
 from repocraft.cli import main
-from repocraft.errors import IntentError
+from repocraft.craft import CraftResult
+from repocraft.errors import CraftError, IntentError
 from repocraft.intent import Intent
 from repocraft.recipe import Recipe, load_recipes
 
@@ -331,4 +332,162 @@ def test_ask_reports_failures_without_writing(
 
     assert main(argv) == 1
     assert fragment in capsys.readouterr().err
+    assert not output.exists()
+
+
+_ADDER_CODE = (
+    '"""Addition utilities."""\n'
+    "\n"
+    "\n"
+    "def add(left: int, right: int) -> int:\n"
+    '    """Return the sum of two integers."""\n'
+    "    return left + right\n"
+)
+
+_ADDER_TEST = (
+    '"""Tests for adder."""\n'
+    "\n"
+    "import unittest\n"
+    "\n"
+    "import adder\n"
+    "\n"
+    "\n"
+    "class AdderTests(unittest.TestCase):\n"
+    "    def test_adds(self) -> None:\n"
+    "        self.assertEqual(adder.add(2, 3), 5)\n"
+    "\n"
+    "\n"
+    'if __name__ == "__main__":\n'
+    "    unittest.main()\n"
+)
+
+
+def _install_craft(monkeypatch: pytest.MonkeyPatch, result: CraftResult) -> None:
+    def fake(request: str, *, base_url: str | None, model: str | None) -> CraftResult:
+        assert request == "a small adder"
+        return result
+
+    monkeypatch.setattr("repocraft.cli.request_craft", fake)
+
+
+def _adder() -> CraftResult:
+    return CraftResult(name="adder", code=_ADDER_CODE, test=_ADDER_TEST)
+
+
+def test_craft_verifies_and_writes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _install_craft(monkeypatch, _adder())
+    output = tmp_path / "snippet"
+
+    assert main(["craft", "a small adder", "-o", str(output), "--yes"]) == 0
+
+    captured = capsys.readouterr()
+    assert f"wrote {output / 'adder.py'}" in captured.out
+    assert f"wrote {output / 'test_adder.py'}" in captured.out
+    assert (output / "adder.py").is_file()
+    assert (output / "test_adder.py").is_file()
+
+
+def test_craft_confirms_with_the_code_on_screen(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _install_craft(monkeypatch, _adder())
+
+    def accept(_prompt: str = "") -> str:
+        return "yes"
+
+    monkeypatch.setattr("builtins.input", accept)
+    output = tmp_path / "confirmed"
+    assert main(["craft", "a small adder", "-o", str(output)]) == 0
+
+    captured = capsys.readouterr().out
+    assert "checks passed: python syntax" in captured
+    assert "unit tests pass" in captured
+    assert "def add(left: int, right: int) -> int:" in captured
+    assert (output / "adder.py").is_file()
+
+
+def test_craft_dry_run_lists_without_writing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _install_craft(monkeypatch, _adder())
+    output = tmp_path / "planned"
+
+    assert main(["craft", "a small adder", "-o", str(output), "--dry-run"]) == 0
+
+    printed = capsys.readouterr().out.splitlines()
+    assert printed == [str(output / "adder.py"), str(output / "test_adder.py")]
+    assert not output.exists()
+
+
+def test_craft_reports_model_failures(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def fail(request: str, *, base_url: str | None, model: str | None) -> CraftResult:
+        raise CraftError("the model rejected the request: nothing fits")
+
+    monkeypatch.setattr("repocraft.cli.request_craft", fail)
+    output = tmp_path / "out"
+
+    assert main(["craft", "a small adder", "-o", str(output), "--yes"]) == 1
+
+    assert "nothing fits" in capsys.readouterr().err
+    assert not output.exists()
+
+
+def test_craft_reports_verification_failures(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    broken = CraftResult(name="adder", code="def broken(:", test=_ADDER_TEST)
+    _install_craft(monkeypatch, broken)
+    output = tmp_path / "out"
+
+    assert main(["craft", "a small adder", "-o", str(output), "--yes"]) == 1
+
+    assert "syntax error" in capsys.readouterr().err
+    assert not output.exists()
+
+
+def test_craft_requires_confirmation_without_a_terminal(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def fail(_prompt: str = "") -> str:
+        raise EOFError
+
+    monkeypatch.setattr("builtins.input", fail)
+    _install_craft(monkeypatch, _adder())
+    output = tmp_path / "no-terminal"
+
+    assert main(["craft", "a small adder", "-o", str(output)]) == 1
+
+    assert "confirmation required" in capsys.readouterr().err
+    assert not output.exists()
+
+
+def test_craft_aborts_when_declined(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def decline(_prompt: str = "") -> str:
+        return "n"
+
+    monkeypatch.setattr("builtins.input", decline)
+    _install_craft(monkeypatch, _adder())
+    output = tmp_path / "declined"
+
+    assert main(["craft", "a small adder", "-o", str(output)]) == 1
+
+    assert "aborted; no files were written" in capsys.readouterr().err
     assert not output.exists()

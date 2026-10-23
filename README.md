@@ -2,7 +2,7 @@
 
 Deterministic Python generation from validated input.
 
-`repocraft` has three paths:
+`repocraft` has four paths:
 
 - a short request such as `triangle` selects a built-in recipe and writes one
   `.py` file plus one `unittest` file;
@@ -10,12 +10,20 @@ Deterministic Python generation from validated input.
   a `src/` layout, tests, lint and type-check configuration, CI, CodeQL,
   Dependabot, and a JUnit gate that rejects skipped tests;
 - an optional `ask` path where a model only proposes a strict
-  `{recipe, parameters}` intent, which repocraft validates before writing.
+  `{recipe, parameters}` intent, which repocraft validates before writing;
+- an optional `craft` path where a model writes the snippet and repocraft
+  verifies it through deterministic gates before anything is written.
 
-The same input and the same `repocraft` version always produce byte-identical
-output. GitHub repository creation is a roadmap item.
+The first two paths are deterministic: the same input and the same `repocraft`
+version always produce byte-identical output. GitHub repository creation is a
+roadmap item.
 
 ## Status
+
+Version 0.4.0 adds the `craft` path: a model writes a free-form snippet and
+repocraft verifies it — python syntax, that the generated tests import the
+module, ruff when it is installed, and the generated tests themselves — before
+the confirmation prompt and the no-overwrite rules apply.
 
 Version 0.3.0 adds the optional AI intent layer and three new recipes:
 
@@ -121,6 +129,41 @@ Rules:
   `REPOCRAFT_MODEL` selects the model;
 - without `OPENAI_API_KEY` in the environment the command refuses to run.
 
+## Craft mode (optional)
+
+`craft` is the path where the model writes the code and repocraft stays in
+control of quality. The model proposes a module, its source, and a unittest
+file; repocraft then runs deterministic gates on the proposal before anything
+is written:
+
+```bash
+export OPENAI_API_KEY=sk-...            # required
+repocraft craft "binary search"          # proposes, verifies, asks, writes
+```
+
+Gates, in order:
+
+1. python syntax of the code and the test;
+2. the test must import the proposed module by name;
+3. ruff on the generated files, when ruff is installed;
+4. the generated unittest file must run and pass at least one test;
+5. the confirmation prompt shows the code and every check that passed.
+
+Rules:
+
+- `--endpoint`, `--model`, `REPOCRAFT_MODEL`, and `OPENAI_BASE_URL` configure
+  the endpoint exactly as in `ask`;
+- the module name must be a lowercase snake_case identifier;
+- only the standard library is allowed in the prompt, but the gates verify
+  what actually runs;
+- `--dry-run` lists the planned files after verification; the no-overwrite
+  rule applies;
+- without `OPENAI_API_KEY` in the environment the command refuses to run.
+
+Unlike the deterministic paths, the written content depends on the model;
+repocraft guarantees only that every gate passed and that you saw the code
+before it was written.
+
 ## Project mode
 
 Write a spec:
@@ -198,7 +241,10 @@ The golden tests in `tests/golden/` enforce the contract file by file,
 including the built-in recipe snapshots.
 
 The `ask` command adds a model, but the contract still holds: the model only
-proposes an intent, and a confirmed intent renders exactly like `make`.
+proposes an intent, and a confirmed intent renders exactly like `make`. The
+`craft` command goes further — the model writes the code — so its output is
+not part of the contract; its gates, the confirmation prompt, and the
+no-overwrite rule are.
 
 ## Development
 

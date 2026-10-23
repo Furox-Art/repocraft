@@ -21,3 +21,7 @@ class RecipeError(RepocraftError):
 
 class IntentError(RepocraftError):
     """The AI intent layer is unusable, or returned an unusable intent."""
+
+
+class CraftError(RepocraftError):
+    """The AI craft layer is unusable, or its output failed verification."""

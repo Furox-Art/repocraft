@@ -8,7 +8,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from repocraft import __version__
-from repocraft.errors import RecipeError, RepocraftError
+from repocraft.craft import VerifiedCraft, request_craft, verify_craft
+from repocraft.errors import CraftError, RecipeError, RepocraftError
 from repocraft.intent import request_intent
 from repocraft.recipe import (
     GeneratedFile,
@@ -96,6 +97,35 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="model name (default: REPOCRAFT_MODEL env or gpt-4o-mini)",
     )
+
+    craft = commands.add_parser(
+        "craft",
+        help="generate a free-form snippet with AI and verify it before writing",
+    )
+    craft.add_argument("request", help="what to generate, for example 'binary search'")
+    craft.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=Path("."),
+        help="directory to write into (default: current directory)",
+    )
+    craft.add_argument(
+        "-y", "--yes", action="store_true", help="write without asking for confirmation"
+    )
+    craft.add_argument(
+        "--dry-run", action="store_true", help="list files without writing them"
+    )
+    craft.add_argument(
+        "--endpoint",
+        default=None,
+        help="OpenAI-compatible base URL (default: OPENAI_BASE_URL env or the public API)",
+    )
+    craft.add_argument(
+        "--model",
+        default=None,
+        help="model name (default: REPOCRAFT_MODEL env or gpt-4o-mini)",
+    )
     return parser
 
 
@@ -111,6 +141,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _list_recipes()
         if args.command == "ask":
             return _ask(args)
+        if args.command == "craft":
+            return _craft(args)
         return _make(args)
     except RepocraftError as error:
         print(f"error: {error}", file=sys.stderr)
@@ -173,6 +205,48 @@ def _write_snippet(
         for path in written:
             print(f"wrote {path}")
     return 0
+
+
+def _craft(args: argparse.Namespace) -> int:
+    verified = verify_craft(
+        request_craft(args.request, base_url=args.endpoint, model=args.model)
+    )
+    result = verified.result
+    files = (
+        GeneratedFile(name=f"{result.name}.py", content=result.code),
+        GeneratedFile(name=f"test_{result.name}.py", content=result.test),
+    )
+    output = Path(args.output)
+    if not args.dry_run and not args.yes:
+        _confirm_craft(verified, files, output)
+    written = write_files(files, output, dry_run=args.dry_run)
+    if args.dry_run:
+        for path in written:
+            print(path)
+    else:
+        for path in written:
+            print(f"wrote {path}")
+    return 0
+
+
+def _confirm_craft(
+    verified: VerifiedCraft,
+    files: Sequence[GeneratedFile],
+    output: Path,
+) -> None:
+    print("checks passed: " + ", ".join(verified.checks))
+    for file in files:
+        print(f"file: {output / file.name}")
+        print(file.content.rstrip())
+    print("write these files? [y/N] ", end="", flush=True)
+    try:
+        answer = input()
+    except (EOFError, OSError) as error:
+        raise CraftError(
+            "confirmation required; rerun with --yes to write without prompting"
+        ) from error
+    if answer.strip().casefold() not in {"y", "yes"}:
+        raise CraftError("aborted; no files were written")
 
 
 def _parse_overrides(pairs: Sequence[str]) -> dict[str, str]:
