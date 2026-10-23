@@ -17,3 +17,7 @@ class RenderError(RepocraftError):
 
 class RecipeError(RepocraftError):
     """A recipe is invalid, or a request cannot be matched unambiguously."""
+
+
+class IntentError(RepocraftError):
+    """The AI intent layer is unusable, or returned an unusable intent."""

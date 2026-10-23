@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import runpy
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from repocraft import __version__
 from repocraft.cli import main
-from repocraft.recipe import load_recipes
+from repocraft.errors import IntentError
+from repocraft.intent import Intent
+from repocraft.recipe import Recipe, load_recipes
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
@@ -208,3 +212,123 @@ def test_make_refuses_to_overwrite(
     assert main(["make", "fibonacci", "-o", str(output), "--yes"]) == 1
     assert "refusing to overwrite" in capsys.readouterr().err
     assert keep.read_text(encoding="utf-8") == "keep"
+
+
+def _install_intent(
+    monkeypatch: pytest.MonkeyPatch,
+    intent: Intent | None,
+    error: Exception | None = None,
+) -> dict[str, Any]:
+    calls: dict[str, Any] = {}
+
+    def fake(
+        request: str,
+        recipes: Sequence[Recipe],
+        *,
+        base_url: str | None,
+        model: str | None,
+    ) -> Intent:
+        calls["request"] = request
+        calls["recipes"] = recipes
+        calls["base_url"] = base_url
+        calls["model"] = model
+        if error is not None:
+            raise error
+        assert intent is not None
+        return intent
+
+    monkeypatch.setattr("repocraft.cli.request_intent", fake)
+    return calls
+
+
+def _triangle_intent() -> Intent:
+    recipe = next(entry for entry in load_recipes() if entry.id == "triangle")
+    return Intent(recipe=recipe, parameters={"height": 7})
+
+
+def test_ask_writes_the_validated_intent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    calls = _install_intent(monkeypatch, _triangle_intent())
+    output = tmp_path / "snippet"
+
+    assert main(["ask", "a tall triangle", "-o", str(output), "--yes"]) == 0
+
+    captured = capsys.readouterr()
+    assert f"wrote {output / 'triangle.py'}" in captured.out
+    assert "triangle(7)" in (output / "triangle.py").read_text(encoding="utf-8")
+    assert calls["request"] == "a tall triangle"
+    assert calls["base_url"] is None
+    assert calls["model"] is None
+
+
+def test_ask_confirms_before_writing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _install_intent(monkeypatch, _triangle_intent())
+
+    def accept(_prompt: str = "") -> str:
+        return "y"
+
+    monkeypatch.setattr("builtins.input", accept)
+    output = tmp_path / "confirmed"
+    assert main(["ask", "a tall triangle", "-o", str(output)]) == 0
+    assert "recipe: triangle 1.0.0" in capsys.readouterr().out
+    assert (output / "triangle.py").is_file()
+
+
+def test_ask_dry_run_writes_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _install_intent(monkeypatch, _triangle_intent())
+    output = tmp_path / "planned"
+
+    assert main(["ask", "a tall triangle", "-o", str(output), "--dry-run"]) == 0
+
+    printed = capsys.readouterr().out.splitlines()
+    assert printed == [str(output / "triangle.py"), str(output / "test_triangle.py")]
+    assert not output.exists()
+
+
+def test_ask_param_overrides_the_intent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _install_intent(monkeypatch, _triangle_intent())
+    output = tmp_path / "snippet"
+
+    argv = ["ask", "a tall triangle", "-o", str(output), "--yes", "--param", "height=9"]
+    assert main(argv) == 0
+
+    assert "triangle(9)" in (output / "triangle.py").read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    ("error", "fragment"),
+    [
+        (IntentError("the model rejected the request: nothing fits"), "nothing fits"),
+        (None, "between 1 and 100"),
+    ],
+)
+def test_ask_reports_failures_without_writing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    error: Exception | None,
+    fragment: str,
+) -> None:
+    _install_intent(monkeypatch, _triangle_intent() if error is None else None, error)
+    output = tmp_path / "out"
+
+    argv = ["ask", "a tall triangle", "-o", str(output), "--yes"]
+    if error is None:
+        argv.extend(["--param", "height=0"])
+
+    assert main(argv) == 1
+    assert fragment in capsys.readouterr().err
+    assert not output.exists()

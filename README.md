@@ -2,25 +2,37 @@
 
 Deterministic Python generation from validated input.
 
-`repocraft` has two closed paths that never call a model:
+`repocraft` has three paths:
 
 - a short request such as `triangle` selects a built-in recipe and writes one
   `.py` file plus one `unittest` file;
 - a small YAML spec becomes a complete Python project with packaging metadata,
   a `src/` layout, tests, lint and type-check configuration, CI, CodeQL,
-  Dependabot, and a JUnit gate that rejects skipped tests.
+  Dependabot, and a JUnit gate that rejects skipped tests;
+- an optional `ask` path where a model only proposes a strict
+  `{recipe, parameters}` intent, which repocraft validates before writing.
 
 The same input and the same `repocraft` version always produce byte-identical
-output. The AI skill layer and GitHub repository creation are roadmap items.
+output. GitHub repository creation is a roadmap item.
 
 ## Status
 
-Version 0.2.0 adds the deterministic snippet mode:
+Version 0.3.0 adds the optional AI intent layer and three new recipes:
+
+- `repocraft ask` sends a free-form request to an OpenAI-compatible endpoint
+  and turns the reply into a strict `{recipe, parameters}` intent;
+- the model never writes code or files; the intent is validated against the
+  recipe catalog with the same rules as `make`;
+- configuration through `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `REPOCRAFT_MODEL`,
+  or `--endpoint` and `--model`;
+- new recipes: `fizzbuzz`, `pascal`, and `password`.
+
+Version 0.2.0 added the deterministic snippet mode:
 
 - strict JSON Schema validation for specs and recipes, plus duplicate-key
   rejection in YAML;
-- seven built-in recipes: `fibonacci`, `factorial`, `fizzbuzz`, `pascal`,
-  `password`, `prime_sieve`, and `triangle`;
+- four built-in recipes: `fibonacci`, `factorial`, `prime_sieve`, and
+  `triangle`;
 - deterministic English matching with case, accent, and suffix normalization;
 - confirmation before writing, `--dry-run`, `--param`, and refusal to overwrite;
 - golden snapshots and smoke tests for every generated snippet.
@@ -28,8 +40,8 @@ Version 0.2.0 adds the deterministic snippet mode:
 The project mode from 0.1.0 is unchanged: library and CLI scaffolds with
 golden-tested templates, CI, CodeQL, Dependabot, and coverage/skip gates.
 
-The AI skill layer is planned for version 2.0. This release has no model or
-network dependency.
+The deterministic commands (`validate`, `render`, `recipes`, `make`) have no
+model or network dependency; only `ask` uses the network.
 
 ## Requirements
 
@@ -85,6 +97,29 @@ Rules:
 The matcher normalizes case and accents and matches word prefixes, so
 `Triangles` and `draw a triangle` both select the triangle recipe. It never
 calls a model.
+
+## Ask mode (optional)
+
+`ask` is the only command that calls a model. It turns a free-form request
+into a validated intent and then reuses the snippet path end to end:
+
+```bash
+export OPENAI_API_KEY=sk-...            # required
+repocraft ask "a tall triangle"          # proposes triangle with its default height
+repocraft ask "first 20 fibonacci numbers" --yes
+```
+
+Rules:
+
+- the model replies with JSON only: a recipe id and integer parameters, or
+  `null` with a reason when nothing fits;
+- repocraft validates the reply against the catalog; unknown recipes, invalid
+  parameters, and malformed replies are rejected;
+- the confirmation prompt, `--dry-run`, `--param`, and the refusal to
+  overwrite behave exactly as in `make`;
+- `--endpoint` selects any OpenAI-compatible base URL; `--model` or
+  `REPOCRAFT_MODEL` selects the model;
+- without `OPENAI_API_KEY` in the environment the command refuses to run.
 
 ## Project mode
 
@@ -162,6 +197,9 @@ For fixed input and a fixed `repocraft` version:
 The golden tests in `tests/golden/` enforce the contract file by file,
 including the built-in recipe snapshots.
 
+The `ask` command adds a model, but the contract still holds: the model only
+proposes an intent, and a confirmed intent renders exactly like `make`.
+
 ## Development
 
 ```bash
@@ -182,16 +220,12 @@ CI runs the suite on Python 3.10 through 3.14 and rejects skipped tests through
 
 ## Roadmap
 
-1. Version 2.0: a general AI skill layer that turns free-form requests into a
-   strict `{recipe_id, parameters}` intent and invokes `repocraft make`. The
-   model never writes code or files; unsupported requests must be rejected or
-   clarified.
-2. Interactive wizard for people who do not want to write project YAML.
-3. Free-form natural language to a full project spec through an
+1. Interactive wizard for people who do not want to write project YAML.
+2. Free-form natural language to a full project spec through an
    OpenAI-compatible endpoint, with a confirmation step before any file is
    written.
-4. GitHub repository creation and push, private by default.
-5. MCP server exposing the same validated core.
+3. GitHub repository creation and push, private by default.
+4. MCP server exposing the same validated core.
 
 ## License
 
