@@ -1,5 +1,7 @@
 # repocraft
 
+[![PyPI](https://img.shields.io/pypi/v/repocraft)](https://pypi.org/project/repocraft/)
+
 Deterministic Python generation from validated input.
 
 `repocraft` has four paths:
@@ -57,7 +59,11 @@ model or network dependency; only `ask` uses the network.
 
 ## Installation
 
-The package is not published on PyPI yet. From this checkout:
+```bash
+python -m pip install repocraft
+```
+
+Or from this checkout:
 
 ```bash
 python -m pip install .

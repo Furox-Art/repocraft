@@ -30,6 +30,9 @@ dependencies = [
   "jsonschema>=4.23,<5",
 ]
 
+[project.urls]
+Repository = "https://github.com/Furox-Art/repocraft"
+
 [project.optional-dependencies]
 dev = [
   "hatchling>=1.27",
