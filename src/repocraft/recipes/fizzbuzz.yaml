@@ -1,0 +1,13 @@
+schema_version: 1
+id: fizzbuzz
+version: 1.0.0
+description: Print the FizzBuzz sequence up to a limit.
+triggers:
+  - fizzbuzz
+  - fizz buzz
+parameters:
+  limit:
+    type: integer
+    default: 15
+    minimum: 1
+    maximum: 10000

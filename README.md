@@ -19,8 +19,8 @@ Version 0.2.0 adds the deterministic snippet mode:
 
 - strict JSON Schema validation for specs and recipes, plus duplicate-key
   rejection in YAML;
-- four built-in recipes: `fibonacci`, `factorial`, `prime_sieve`, and
-  `triangle`;
+- seven built-in recipes: `fibonacci`, `factorial`, `fizzbuzz`, `pascal`,
+  `password`, `prime_sieve`, and `triangle`;
 - deterministic English matching with case, accent, and suffix normalization;
 - confirmation before writing, `--dry-run`, `--param`, and refusal to overwrite;
 - golden snapshots and smoke tests for every generated snippet.

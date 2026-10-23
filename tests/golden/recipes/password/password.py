@@ -1,0 +1,24 @@
+"""Random password generation."""
+
+from __future__ import annotations
+
+import secrets
+import string
+
+ALPHABET = string.ascii_letters + string.digits + string.punctuation
+
+
+def password(length: int) -> str:
+    """Return a random password with ``length`` characters."""
+    if length < 8:
+        raise ValueError("length must be at least 8")
+    return "".join(secrets.choice(ALPHABET) for _ in range(length))
+
+
+def main() -> None:
+    """Print a password with the length configured when this file was generated."""
+    print(password(16))
+
+
+if __name__ == "__main__":
+    main()

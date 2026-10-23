@@ -71,7 +71,15 @@ def _write_recipe(
 
 
 def test_builtin_recipe_ids_are_sorted() -> None:
-    assert RECIPE_IDS == ["factorial", "fibonacci", "prime_sieve", "triangle"]
+    assert RECIPE_IDS == [
+        "factorial",
+        "fibonacci",
+        "fizzbuzz",
+        "pascal",
+        "password",
+        "prime_sieve",
+        "triangle",
+    ]
 
 
 @pytest.mark.parametrize(
@@ -176,6 +184,9 @@ def test_rendering_is_byte_identical_for_the_same_inputs(recipe: Recipe) -> None
     [
         ("factorial", 6),
         ("fibonacci", 6),
+        ("fizzbuzz", 6),
+        ("pascal", 6),
+        ("password", 12),
         ("prime_sieve", 6),
         ("triangle", 6),
     ],
