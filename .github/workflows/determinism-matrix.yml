@@ -56,7 +56,7 @@ jobs:
           retention-days: 14
 
   compare:
-    name: Cross-OS digest comparison (report only)
+    name: Cross-OS digest comparison
     needs: matrix
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -90,17 +90,18 @@ jobs:
               right=$(basename "${files[$j]}" .json)
               echo "=== ${left} vs ${right} ==="
               if ! python scripts/determinism_matrix.py compare \
-                "${files[$i]}" "${files[$j]}" > "compare-${left}-${right}.json"; then
+                "${files[$i]}" "${files[$j]}" --gate > "compare-${left}-${right}.json"; then
                 failures=$((failures + 1))
-                rm -f "compare-${left}-${right}.json"
-                echo "::warning::could not compare ${left} vs ${right}"
+                echo "::error::cross-OS determinism failed or could not be compared: ${left} vs ${right}"
               fi
             done
           done
           if [ "$failures" -ne 0 ]; then
-            echo "::warning::${failures} manifest pair(s) could not be compared"
+            echo "::error::${failures} manifest pair(s) mismatched or could not be compared"
+            exit 1
           fi
       - name: Write comparison summary
+        if: always()
         shell: bash
         run: |
           python - <<'PY'
