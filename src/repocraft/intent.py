@@ -107,7 +107,12 @@ def request_intent(
 
 
 def post_chat(
-    *, url: str, api_key: str, model: str, messages: list[dict[str, str]]
+    *,
+    url: str,
+    api_key: str,
+    model: str,
+    messages: list[dict[str, str]],
+    timeout: float = _TIMEOUT_SECONDS,
 ) -> Any:
     """POST a chat completion request and return the decoded JSON payload."""
     body = json.dumps(
@@ -123,7 +128,9 @@ def post_chat(
         method="POST",
     )
     try:
-        with urllib.request.urlopen(http_request, timeout=_TIMEOUT_SECONDS) as response:
+        with urllib.request.urlopen(
+            http_request, timeout=timeout
+        ) as response:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as error:
         detail = error.read().decode("utf-8", "replace")[:200]
