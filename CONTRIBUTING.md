@@ -55,3 +55,13 @@ Review every changed golden file before committing it.
 - Keep each change focused and explain why it is needed.
 - Add tests for behavior changes.
 - Write code, comments, and documentation in English.
+
+## Releasing
+
+1. Bump `version` in `pyproject.toml` and `__version__` in
+   `src/repocraft/__init__.py` to the same new version.
+2. Run the full check suite from this file and merge to `main`.
+3. Tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+4. The `Publish` workflow builds the package, runs `twine check`, and uploads
+   it to PyPI with the `PYPI_API_TOKEN` secret. PyPI versions are immutable,
+   so never reuse a version number.

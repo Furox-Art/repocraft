@@ -12,29 +12,9 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
 from repocraft.errors import SpecError
+from repocraft.yaml_loader import DuplicateKeyError, UniqueKeyLoader
 
 SCHEMA_PATH = Path(__file__).resolve().parent / "schema" / "spec.schema.json"
-
-
-class _UniqueKeyLoader(yaml.SafeLoader):
-    """SafeLoader that rejects duplicate mapping keys instead of keeping the last."""
-
-
-def _construct_mapping(loader: Any, node: Any, deep: bool = False) -> dict[Any, Any]:
-    loader.flatten_mapping(node)
-    mapping: dict[Any, Any] = {}
-    for key_node, value_node in node.value:
-        key = loader.construct_object(key_node, deep=deep)
-        if key in mapping:
-            raise SpecError(f"duplicate key {key!r} in spec")
-        mapping[key] = loader.construct_object(value_node, deep=deep)
-    return mapping
-
-
-_UniqueKeyLoader.add_constructor(
-    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-    _construct_mapping,
-)
 
 
 def load_spec(path: Path) -> dict[str, Any]:
@@ -49,7 +29,9 @@ def load_spec(path: Path) -> dict[str, Any]:
 def load_spec_text(text: str) -> dict[str, Any]:
     """Parse and validate a YAML spec document."""
     try:
-        data = yaml.load(text, Loader=_UniqueKeyLoader)
+        data = yaml.load(text, Loader=UniqueKeyLoader)
+    except DuplicateKeyError as error:
+        raise SpecError(f"duplicate key {error.key!r} in spec") from error
     except yaml.YAMLError as error:
         raise SpecError(f"invalid YAML: {error}") from error
     if not isinstance(data, dict):

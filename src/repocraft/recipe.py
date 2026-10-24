@@ -16,32 +16,12 @@ from jsonschema import Draft202012Validator
 
 from repocraft.errors import RecipeError
 from repocraft.render import template_environment
+from repocraft.yaml_loader import DuplicateKeyError, UniqueKeyLoader
 
 if TYPE_CHECKING:
     from importlib.abc import Traversable
 
 _INTEGER = re.compile(r"-?[0-9]+")
-
-
-class _RecipeYamlLoader(yaml.SafeLoader):
-    """SafeLoader that rejects duplicate mapping keys instead of keeping the last."""
-
-
-def _construct_mapping(loader: Any, node: Any, deep: bool = False) -> dict[Any, Any]:
-    loader.flatten_mapping(node)
-    mapping: dict[Any, Any] = {}
-    for key_node, value_node in node.value:
-        key = loader.construct_object(key_node, deep=deep)
-        if key in mapping:
-            raise RecipeError(f"duplicate key {key!r} in recipe")
-        mapping[key] = loader.construct_object(value_node, deep=deep)
-    return mapping
-
-
-_RecipeYamlLoader.add_constructor(
-    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-    _construct_mapping,
-)
 
 
 @dataclass(frozen=True)
@@ -184,7 +164,9 @@ def _load_schema() -> dict[str, Any]:
 
 def _load_recipe(root: Traversable, entry: Traversable, schema: dict[str, Any]) -> Recipe:
     try:
-        data = yaml.load(entry.read_text(encoding="utf-8"), Loader=_RecipeYamlLoader)
+        data = yaml.load(entry.read_text(encoding="utf-8"), Loader=UniqueKeyLoader)
+    except DuplicateKeyError as error:
+        raise RecipeError(f"duplicate key {error.key!r} in recipe") from error
     except yaml.YAMLError as error:
         raise RecipeError(f"invalid YAML in recipe {entry.name}: {error}") from error
     if not isinstance(data, dict):
