@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from pathlib import Path
 from typing import Any
 
@@ -210,6 +211,25 @@ def test_write_files_creates_a_nested_output_directory(tmp_path: Path) -> None:
         assert content.endswith(b"\n")
 
 
+def test_write_files_accepts_an_existing_empty_directory(tmp_path: Path) -> None:
+    output = tmp_path / "out"
+    output.mkdir()
+
+    written = write_files(_default_files("fibonacci"), output)
+
+    assert (output / "fibonacci.py").is_file()
+    assert len(written) == 2
+
+
+def test_recipe_records_are_frozen() -> None:
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        _recipe("triangle").id = "changed"  # type: ignore[misc]
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        _recipe("triangle").parameters[0].name = "changed"  # type: ignore[misc]
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        GeneratedFile(name="x", content="x").name = "changed"  # type: ignore[misc]
+
+
 def test_dry_run_plans_without_writing(tmp_path: Path) -> None:
     files = _default_files("fibonacci")
     output = tmp_path / "planned"
@@ -341,6 +361,23 @@ def test_parameter_minimum_above_maximum_is_rejected(tmp_path: Path) -> None:
     _write_recipe(root, data)
     with pytest.raises(RecipeError, match="minimum greater"):
         load_recipes(root)
+
+
+def test_parameter_with_equal_bounds_is_accepted(tmp_path: Path) -> None:
+    data = _recipe_data()
+    data["parameters"]["count"] = {
+        "type": "integer",
+        "default": 3,
+        "minimum": 3,
+        "maximum": 3,
+    }
+    root = tmp_path / "recipes"
+    _write_recipe(root, data)
+
+    recipe = load_recipes(root)[0]
+
+    assert recipe.parameters[0].minimum == 3
+    assert recipe.parameters[0].maximum == 3
 
 
 def test_default_outside_parameter_bounds_is_rejected(tmp_path: Path) -> None:

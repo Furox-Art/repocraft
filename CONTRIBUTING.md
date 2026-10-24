@@ -56,6 +56,22 @@ Review every changed golden file before committing it.
 - Add tests for behavior changes.
 - Write code, comments, and documentation in English.
 
+## Mutation testing (optional, slow)
+
+Coverage says which lines ran; mutation testing says whether the assertions
+can actually catch bugs. Two tools are supported:
+
+```bash
+# cross-platform probe (applies AST mutations, runs pytest per mutant)
+python scripts/mutation_probe.py src/repocraft/yaml_loader.py tests/test_spec.py
+
+# mutmut (Linux/WSL only; the dev extras include it)
+mutmut run --paths-to-mutate src/repocraft/yaml_loader.py
+```
+
+Every surviving mutant is a missing assertion: either kill it with a test or
+accept it consciously.
+
 ## Releasing
 
 1. Bump `version` in `pyproject.toml` and `__version__` in
