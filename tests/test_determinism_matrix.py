@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import subprocess
 import sys
@@ -27,6 +28,14 @@ def _run_engine(*args: object) -> subprocess.CompletedProcess[str]:
 def _manifest(path: Path) -> dict[str, Any]:
     data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
     return data
+
+
+def _load_workload() -> Any:
+    spec = importlib.util.spec_from_file_location("repocraft_determinism_workload", WORKLOAD)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_matrix_output_is_identical_across_seeds_and_threads(tmp_path: Path) -> None:
@@ -130,3 +139,20 @@ def test_matrix_reports_a_workload_error_separately(tmp_path: Path) -> None:
     )
     assert completed.returncode == 4
     assert _manifest(out)["runs"][0]["exit_code"] == 1
+
+
+def test_tree_records_follow_posix_path_order(tmp_path: Path) -> None:
+    module = _load_workload()
+    (tmp_path / "pyproject.toml").write_text("p\n", encoding="utf-8")
+    (tmp_path / "README.md").write_text("r\n", encoding="utf-8")
+    (tmp_path / "SECURITY.md").write_text("s\n", encoding="utf-8")
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    (scripts / "check.py").write_text("c\n", encoding="utf-8")
+    records = module._tree_records(tmp_path)
+    assert [record["path"] for record in records] == [
+        "README.md",
+        "SECURITY.md",
+        "pyproject.toml",
+        "scripts/check.py",
+    ]
