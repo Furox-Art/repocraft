@@ -17,6 +17,8 @@ def password(length: int) -> str:
 
 def main() -> None:
     """Print a password with the length configured when this file was generated."""
+    # The recipe intentionally demonstrates writing a freshly generated password to stdout.
+    # codeql[py/clear-text-logging-sensitive-data]
     print(password(16))
 
 
