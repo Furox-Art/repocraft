@@ -40,7 +40,11 @@ PROJECTS: dict[str, dict[str, Any]] = {
 
 def _tree_records(root: Path) -> list[dict[str, Any]]:
     records = []
-    for path in sorted(p for p in root.rglob("*") if p.is_file()):
+    files = sorted(
+        (path for path in root.rglob("*") if path.is_file()),
+        key=lambda path: path.relative_to(root).as_posix(),
+    )
+    for path in files:
         records.append(
             {
                 "path": path.relative_to(root).as_posix(),
