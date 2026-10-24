@@ -57,6 +57,40 @@ if __name__ == "__main__":
     unittest.main()
 '''
 
+TYPING_SEQUENCE_CODE = '''"""First item."""
+
+from typing import Sequence
+
+
+def first(items: Sequence[int]) -> int:
+    """Return the first item."""
+    return items[0]
+'''
+
+FIRSTITEM_TEST = '''"""Tests for firstitem."""
+
+import unittest
+
+import firstitem
+
+
+class FirstitemTests(unittest.TestCase):
+    def test_returns_the_first_item(self) -> None:
+        self.assertEqual(firstitem.first([7, 8]), 7)
+
+
+if __name__ == "__main__":
+    unittest.main()
+'''
+
+UNFIXABLE_CODE = '''"""Broken code."""
+
+
+def broken() -> int:
+    """Return an undefined name."""
+    return undefined_name
+'''
+
 
 class _FakeResponse:
     def __init__(self, payload: Any) -> None:
@@ -100,6 +134,7 @@ def test_craft_prompt_describes_the_strict_reply() -> None:
     assert "Reply with JSON only" in prompt
     assert "unittest" in prompt
     assert "standard library" in prompt
+    assert "collections.abc" in prompt
 
 
 def test_parse_craft_accepts_a_well_formed_reply() -> None:
@@ -169,12 +204,7 @@ def test_verify_craft_can_disable_ruff() -> None:
         (GOOD_CODE, "def broken(:", "syntax error"),
         (GOOD_CODE, OTHER_IMPORT_TEST, "must import the module"),
         (GOOD_CODE, FAILING_TEST, "generated tests failed"),
-        (
-            "import os\n\n\ndef add(left: int, right: int) -> int:\n"
-            '    """Return the sum."""\n    return left + right\n',
-            GOOD_TEST,
-            "ruff rejected",
-        ),
+        (UNFIXABLE_CODE, GOOD_TEST, "ruff rejected"),
     ],
 )
 def test_verify_craft_rejects_failed_gates(
@@ -182,6 +212,17 @@ def test_verify_craft_rejects_failed_gates(
 ) -> None:
     with pytest.raises(CraftError, match=fragment):
         verify_craft(CraftResult(name="adder", code=code, test=test))
+
+
+def test_verify_craft_auto_fixes_fixable_ruff_issues() -> None:
+    verified = verify_craft(
+        CraftResult(name="firstitem", code=TYPING_SEQUENCE_CODE, test=FIRSTITEM_TEST)
+    )
+
+    assert "ruff (auto-fixed)" in verified.checks
+    assert "from collections.abc import Sequence" in verified.result.code
+    assert "from typing import" not in verified.result.code
+    assert verified.checks[-1] == "unit tests pass"
 
 
 def test_verify_craft_rejects_test_files_without_tests() -> None:

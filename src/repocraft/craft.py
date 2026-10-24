@@ -58,6 +58,8 @@ def craft_prompt() -> str:
         ' "code": "<module source>", "test": "<unittest source>"}.\n'
         "The code must be self-contained, use only the standard library,"
         " and carry type hints and docstrings.\n"
+        "Import abstract collection types from collections.abc, not from"
+        " typing (for example: from collections.abc import Sequence).\n"
         "The test must import the module by its name, use unittest, and"
         " contain at least one meaningful test."
     )
@@ -140,23 +142,25 @@ def verify_craft(
     checks.append("test imports the module")
     with tempfile.TemporaryDirectory() as temporary:
         directory = Path(temporary)
-        (directory / f"{result.name}.py").write_text(
-            result.code, encoding="utf-8", newline="\n"
-        )
-        (directory / f"test_{result.name}.py").write_text(
-            result.test, encoding="utf-8", newline="\n"
-        )
+        module = directory / f"{result.name}.py"
+        test = directory / f"test_{result.name}.py"
+        module.write_text(result.code, encoding="utf-8", newline="\n")
+        test.write_text(result.test, encoding="utf-8", newline="\n")
         if run_ruff and _ruff_available():
-            lint = subprocess.run(
-                [sys.executable, "-m", "ruff", "check", str(directory)],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+            lint = _ruff(directory)
             if lint.returncode != 0:
-                detail = (lint.stdout + lint.stderr).strip()[:400]
-                raise CraftError(f"ruff rejected the generated code: {detail}")
-            checks.append("ruff")
+                fixed = _ruff(directory, fix=True)
+                if fixed.returncode != 0:
+                    detail = (fixed.stdout + fixed.stderr).strip()[:400]
+                    raise CraftError(f"ruff rejected the generated code: {detail}")
+                result = CraftResult(
+                    name=result.name,
+                    code=module.read_text(encoding="utf-8"),
+                    test=test.read_text(encoding="utf-8"),
+                )
+                checks.append("ruff (auto-fixed)")
+            else:
+                checks.append("ruff")
         completed = subprocess.run(
             [sys.executable, f"test_{result.name}.py"],
             cwd=directory,
@@ -176,3 +180,13 @@ def verify_craft(
 
 def _ruff_available() -> bool:
     return importlib.util.find_spec("ruff") is not None
+
+
+def _ruff(directory: Path, *, fix: bool = False) -> subprocess.CompletedProcess[str]:
+    arguments = ["-m", "ruff", "check", *(["--fix"] if fix else []), str(directory)]
+    return subprocess.run(
+        [sys.executable, *arguments],
+        capture_output=True,
+        text=True,
+        check=False,
+    )

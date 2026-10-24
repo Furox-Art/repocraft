@@ -151,7 +151,8 @@ Gates, in order:
 
 1. python syntax of the code and the test;
 2. the test must import the proposed module by name;
-3. ruff on the generated files, when ruff is installed;
+3. ruff on the generated files, when ruff is installed; fixable findings are
+   auto-fixed first and the check is marked accordingly;
 4. the generated unittest file must run and pass at least one test;
 5. the confirmation prompt shows the code and every check that passed.
 
