@@ -64,10 +64,16 @@ def main() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(repo_root / "src"))
 
+    from repocraft.recipe import (
+        load_recipes,
+        render_recipe,
+        resolve_parameters,
+        write_files,
+    )
     from repocraft.render import render_project
     from repocraft.spec import validate_spec
 
-    payload: dict[str, Any] = {"projects": {}}
+    payload: dict[str, Any] = {"projects": {}, "recipes": {}}
     with tempfile.TemporaryDirectory(prefix="repocraft-workload-") as tmp:
         base = Path(tmp)
         for name, project in PROJECTS.items():
@@ -88,8 +94,22 @@ def main() -> None:
             }
             if sorted(planned) != sorted(written) or not records:
                 raise SystemExit(f"{name}: render plan and output disagree; workload is vacuous")
-    if not payload["projects"]:
-        raise SystemExit("no project was rendered; the workload is vacuous")
+        for recipe in load_recipes():
+            parameters = resolve_parameters(recipe, {})
+            generated = render_recipe(recipe, parameters)
+            out = base / "recipes" / recipe.id
+            written = [path.relative_to(out).as_posix() for path in write_files(generated, out)]
+            records = _tree_records(out)
+            payload["recipes"][recipe.id] = {
+                "version": recipe.version,
+                "parameters": parameters,
+                "files": records,
+                "tree_sha256": _tree_digest(records),
+            }
+            if written != [file.name for file in generated] or len(records) != len(generated):
+                raise SystemExit(f"{recipe.id}: recipe plan and output disagree")
+    if not payload["projects"] or not payload["recipes"]:
+        raise SystemExit("no project or recipe was rendered; the workload is vacuous")
     artifact_dir = os.environ.get("DETERMINISM_ARTIFACT_DIR")
     if artifact_dir:
         Path(artifact_dir, "payload.json").write_text(

@@ -400,3 +400,20 @@ def test_tree_records_follow_posix_path_order(tmp_path: Path) -> None:
         "pyproject.toml",
         "scripts/check.py",
     ]
+
+
+def test_workload_covers_rendered_projects_and_recipes() -> None:
+    completed = subprocess.run(
+        [sys.executable, str(WORKLOAD)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=300,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stderr
+    payload = json.loads(completed.stdout)
+    assert set(payload["projects"]) == {"library", "cli"}
+    assert payload["recipes"]
+    for recipe_id, entry in payload["recipes"].items():
+        assert len(entry["files"]) == 2, recipe_id
