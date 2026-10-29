@@ -11,7 +11,7 @@ requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Furkan" }]
-keywords = ["scaffolding", "code-generation", "python", "deterministic"]
+keywords = ["scaffolding", "code-generation", "python", "deterministic", "reproducibility", "project-template", "cli", "jinja2", "ci", "cross-platform", "byte-identical", "developer-tools"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
@@ -31,7 +31,10 @@ dependencies = [
 ]
 
 [project.urls]
+Homepage = "https://github.com/Furox-Art/repocraft"
 Repository = "https://github.com/Furox-Art/repocraft"
+Issues = "https://github.com/Furox-Art/repocraft/issues"
+Changelog = "https://github.com/Furox-Art/repocraft/releases"
 
 [project.optional-dependencies]
 dev = [
