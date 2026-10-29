@@ -22,6 +22,11 @@ roadmap item.
 
 ## Status
 
+Version 0.4.1 moves the determinism matrix to v0.3.0, makes the cross-OS gate
+mandatory, covers recipe rendering and the locale/timezone axes, and gates PyPI
+publishing on a matching tag plus a passing test suite. No runtime behavior
+changes.
+
 Version 0.4.0 adds the `craft` path: a model writes a free-form snippet and
 repocraft verifies it — python syntax, that the generated tests import the
 module, ruff when it is installed, and the generated tests themselves — before
