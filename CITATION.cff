@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "repocraft: deterministic Python project scaffolding from a validated spec"
+abstract: >-
+  repocraft turns a validated YAML spec or a short recipe request into a
+  complete Python project: packaging metadata, src layout, tests, lint and
+  type-check configuration, CI, CodeQL and Dependabot. The same input and the
+  same repocraft version always produce byte-identical output. Two optional
+  model-assisted paths exist, and in both the model never writes files
+  directly: the ask path validates a strict recipe intent, and the craft path
+  verifies a proposed snippet through deterministic gates before anything is
+  written.
+authors:
+  - family-names: "Furox"
+    given-names: "Art"
+    alias: "Furox-Art"
+repository-code: "https://github.com/Furox-Art/repocraft"
+url: "https://github.com/Furox-Art/repocraft"
+license: MIT
+version: 0.4.1
+date-released: "2026-10-29"
+keywords:
+  - project scaffolding
+  - deterministic code generation
+  - byte-identical output
+  - python
+  - reproducibility
+  - developer tools
